@@ -6,6 +6,9 @@ using System.Text.Json;
 using System.Windows.Forms;
 using System.ComponentModel;
 
+using PKHeX.Core;
+using SysBot.Pokemon.Z3;
+
 namespace SysBot.Pokemon.WinForms;
 
 internal static class Program
@@ -23,10 +26,6 @@ internal static class Program
 #if NETCOREAPP
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
 #endif
-        var cmd = Environment.GetCommandLineArgs();
-        var cfg = Array.Find(cmd, z => z.EndsWith(".json"));
-        if (cfg != null)
-            ConfigPath = cmd[0];
 
         var config = InitConfig();
 

@@ -42,7 +42,7 @@ public class PokeTradeBotLA(PokeTradeHub<PA8> Hub, PokeBotState Config) : PokeRo
     private ulong TradePartnerNIDOffset;
 
     // Cached offsets that stay the same per trade.
-    private ulong TradePartnerOfferedOffset;
+    private ulong TradePartnerStatusOffset;
 
     public override async Task MainLoop(CancellationToken token)
     {
@@ -215,15 +215,15 @@ public class PokeTradeBotLA(PokeTradeHub<PA8> Hub, PokeBotState Config) : PokeRo
         if (await CheckIfSoftBanned(SoftBanOffset, token).ConfigureAwait(false))
             await UnSoftBan(token).ConfigureAwait(false);
 
-        var toSend = poke.TradeData;
-        if (toSend.Species != 0)
-            await SetBoxPokemonAbsolute(BoxStartOffset, toSend, token, sav).ConfigureAwait(false);
-
         if (!await IsOnOverworld(OverworldOffset, token).ConfigureAwait(false))
         {
             await ExitTrade(true, token).ConfigureAwait(false);
             return PokeTradeResult.RecoverStart;
         }
+
+        var toSend = poke.TradeData;
+        if (toSend.Species != 0)
+            await SetBoxPokemonAbsolute(BoxStartOffset, toSend, token, sav).ConfigureAwait(false);
 
         // Speak to the NPC to start a trade.
         Log("Speaking to Simona to start a trade.");
@@ -298,7 +298,7 @@ public class PokeTradeBotLA(PokeTradeHub<PA8> Hub, PokeBotState Config) : PokeRo
         }
 
         // Watch their status to indicate they have offered a Pokémon as well.
-        var offering = await ReadUntilChanged(TradePartnerOfferedOffset, [0x3], 25_000, 1_000, true, true, token).ConfigureAwait(false);
+        var offering = await ReadUntilChanged(TradePartnerStatusOffset, [0x3], 25_000, 1_000, true, true, token).ConfigureAwait(false);
         if (!offering)
         {
             await ExitTrade(false, token).ConfigureAwait(false);
@@ -325,6 +325,13 @@ public class PokeTradeBotLA(PokeTradeHub<PA8> Hub, PokeBotState Config) : PokeRo
             return update;
         }
 
+        if (Hub.Config.Trade.DisallowTradeEvolve && TradeEvolutions.WillTradeEvolve(offered.Species, offered.Form, offered.HeldItem, toSend.Species))
+        {
+            Log("Trade cancelled because trainer offered a Pokémon that would evolve upon trade.");
+            await ExitTrade(false, token).ConfigureAwait(false);
+            return PokeTradeResult.TradeEvolveNotAllowed;
+        }
+
         Log("Confirming trade.");
         var tradeResult = await ConfirmAndStartTrading(poke, token).ConfigureAwait(false);
         if (tradeResult != PokeTradeResult.Success)
@@ -341,7 +348,7 @@ public class PokeTradeBotLA(PokeTradeHub<PA8> Hub, PokeBotState Config) : PokeRo
             return PokeTradeResult.RoutineCancel;
         }
 
-        // Trade was Successful!
+        // Trade was successful!
         var received = await ReadPokemon(BoxStartOffset, BoxFormatSlotSize, token).ConfigureAwait(false);
         // Pokémon in b1s1 is same as the one they were supposed to receive (was never sent).
         if (SearchUtil.HashByDetails(received) == SearchUtil.HashByDetails(toSend) && received.Checksum == toSend.Checksum)
@@ -428,7 +435,7 @@ public class PokeTradeBotLA(PokeTradeHub<PA8> Hub, PokeBotState Config) : PokeRo
             var data = await SwitchConnection.ReadBytesAbsoluteAsync(offset, 4, token).ConfigureAwait(false);
             if (BitConverter.ToInt32(data, 0) != 2)
                 continue;
-            TradePartnerOfferedOffset = offset;
+            TradePartnerStatusOffset = offset;
             return true;
         }
         return false;
@@ -618,14 +625,14 @@ public class PokeTradeBotLA(PokeTradeHub<PA8> Hub, PokeBotState Config) : PokeRo
     private async Task<bool> CheckCloneChangedOffer(CancellationToken token)
     {
         // Watch their status to indicate they canceled, then offered a new Pokémon.
-        var hovering = await ReadUntilChanged(TradePartnerOfferedOffset, [0x2], 25_000, 1_000, true, true, token).ConfigureAwait(false);
+        var hovering = await ReadUntilChanged(TradePartnerStatusOffset, [0x2], 25_000, 1_000, true, true, token).ConfigureAwait(false);
         if (!hovering)
         {
             Log("Trade partner did not change their initial offer.");
             await ExitTrade(false, token).ConfigureAwait(false);
             return false;
         }
-        var offering = await ReadUntilChanged(TradePartnerOfferedOffset, [0x3], 25_000, 1_000, true, true, token).ConfigureAwait(false);
+        var offering = await ReadUntilChanged(TradePartnerStatusOffset, [0x3], 25_000, 1_000, true, true, token).ConfigureAwait(false);
         if (!offering)
         {
             await ExitTrade(false, token).ConfigureAwait(false);
