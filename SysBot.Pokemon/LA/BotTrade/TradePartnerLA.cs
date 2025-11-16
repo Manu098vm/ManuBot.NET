@@ -25,5 +25,5 @@ public sealed class TradePartnerLA : ITradePartner
         Language = info[3];
     }
 
-    public const int MaxByteLengthStringObject = 0x26;
+    public const int MaxByteLengthStringObject = 26;
 }

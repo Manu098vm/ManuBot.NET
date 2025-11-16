@@ -47,6 +47,9 @@ public class TradeSettings : IBotStateSettings, ICountSettings
     [Category(TradeConfig), Description("Use Trade Partner details (OT, TID, SID, Gender), when legally possible.")]
     public bool UseTradePartnerDetails { get; set; } = false;
 
+    [Category(TradeConfig), Description("When enabled, the bot will automatically cancel a trade if offered a Pokémon that will evolve.")]
+    public bool DisallowTradeEvolve { get; set; } = true;
+
     /// <summary>
     /// Gets a random trade code based on the range settings.
     /// </summary>
