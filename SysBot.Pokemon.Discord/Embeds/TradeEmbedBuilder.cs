@@ -138,19 +138,7 @@ public class TradeEmbedBuilder<T>(T PKM, PokeTradeHub<T> Hub, QueueUser trader) 
         string footerText = Environment.NewLine;
 
         // Assume OT and TID can change during the trade process, only show them if the trade has been completed.
-        if (type is TradeEmbedDisplay.TradeInitialize)
-        {
-            var position = Hub.Queues.Info.CheckPosition(trader.UID, PokeRoutineType.LinkTrade);
-            var botCount = Hub.Queues.Info.Hub.Bots.Count;
-            footerText += $"Current Position: {position.Position}";
-
-            if (position.Position > botCount)
-            {
-                var eta = Hub.Config.Queues.EstimateDelay(position.Position, botCount);
-                footerText += $"{Environment.NewLine}Estimated wait time: {eta:F1} minutes.";
-            }
-        }
-        else if (type is TradeEmbedDisplay.TradeComplete)
+        if (type is TradeEmbedDisplay.TradeComplete)
         {
             footerText += $"OT: {PKM.OriginalTrainerName} | TID: {PKM.DisplayTID}" +
                           $"{Environment.NewLine}Trade finished. Enjoy your Pokémon!";

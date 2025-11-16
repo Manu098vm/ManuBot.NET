@@ -98,15 +98,12 @@ public static class QueueHelper<T> where T : PKM, new()
             pokeName = $" Receiving: {GameInfo.GetStrings("en").Species[pk.Species]}.";
         msg = $"{user.Mention} - Added to the {type} queue{ticketID}. {pokeName} ";
 
-        if (!(hub.Config.Discord.UseTradeEmbeds is TradeEmbedDisplay.TradeInitialize && t is PokeTradeType.Specific))
+        msg += $"Current Position: {position.Position}.";
+        var botct = Info.Hub.Bots.Count;
+        if (position.Position > botct)
         {
-            msg += $"Current Position: {position.Position}.";
-            var botct = Info.Hub.Bots.Count;
-            if (position.Position > botct)
-            {
-                var eta = Info.Hub.Config.Queues.EstimateDelay(position.Position, botct);
-                msg += $" Estimated: {eta:F1} minutes.";
-            }
+            var eta = Info.Hub.Config.Queues.EstimateDelay(position.Position, botct);
+            msg += $" Estimated: {eta:F1} minutes.";
         }
 
         return true;
