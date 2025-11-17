@@ -313,17 +313,23 @@ public class PokeTradeBotLZA(PokeTradeHub<PA9> Hub, PokeBotState Config) : PokeR
         await Task.Delay(1_000 + Hub.Config.Timings.ExtraTimeOpenBox, token).ConfigureAwait(false);
 
         var tradePartner = await GetTradePartnerInfo(token).ConfigureAwait(false);
-        RecordUtil<PokeTradeBotLZA>.Record($"Initiating\t{tradePartner.NID:X16}\t{tradePartner.TrainerName}\t{poke.Trainer.TrainerName}\t{poke.Trainer.ID}\t{poke.ID}\t{toSend.EncryptionConstant:X8}");
-        Log($"Found Link Trade partner: {tradePartner.TrainerName}-{tradePartner.TID7} (ID: {tradePartner.NID})");
+        RecordUtil<PokeTradeBotLZA>.Record($"Initiating\t{tradePartner.NID:X16}\t{tradePartner.OT}\t{poke.Trainer.TrainerName}\t{poke.Trainer.ID}\t{poke.ID}\t{toSend.EncryptionConstant:X8}");
+        Log($"Found Link Trade partner: {tradePartner.OT}-{tradePartner.TID7:000000} (ID: {tradePartner.NID})");
 
-        var partnerCheck = await CheckPartnerReputation(this, poke, tradePartner.NID, tradePartner.TrainerName, AbuseSettings, token);
+        var partnerCheck = await CheckPartnerReputation(this, poke, tradePartner.NID, tradePartner.OT, AbuseSettings, token);
         if (partnerCheck != PokeTradeResult.Success)
         {
             await ResetToLinkPlay(token).ConfigureAwait(false);
             return partnerCheck;
         }
 
-        poke.SendNotification(this, $"Found Link Trade partner: {tradePartner.TrainerName}. Waiting for a Pokémon...");
+        if (Hub.Config.Trade.UseTradePartnerDetails && TradeExtensions<PA9>.TrySetPartnerDetails(this, tradePartner, poke, Hub.Config, out var toSendEdited))
+        {
+            toSend = toSendEdited;
+            await SetBoxPokemonAbsolute(BoxStartOffset, toSend, token, sav).ConfigureAwait(false);
+        }
+
+        poke.SendNotification(this, $"Found Link Trade partner: {tradePartner.OT}. Waiting for a Pokémon...");
 
         if (poke.Type == PokeTradeType.Dump)
         {
@@ -354,7 +360,7 @@ public class PokeTradeBotLZA(PokeTradeHub<PA9> Hub, PokeBotState Config) : PokeR
         offered.Heal();
         offered.RefreshChecksum();
 
-        var trainer = new PartnerDataHolder(0, tradePartner.TrainerName, tradePartner.TID7);
+        var trainer = new PartnerDataHolder(0, tradePartner.OT, $"{tradePartner.TID7:000000}");
         (toSend, PokeTradeResult update) = await GetEntityToSend(sav, poke, offered, toSend, trainer, token).ConfigureAwait(false);
         if (update != PokeTradeResult.Success)
         {
@@ -403,7 +409,7 @@ public class PokeTradeBotLZA(PokeTradeHub<PA9> Hub, PokeBotState Config) : PokeR
         UpdateCountsAndExport(poke, received, toSend);
 
         // Log for Trade Abuse tracking.
-        LogSuccessfulTrades(poke, tradePartner.NID, tradePartner.TrainerName);
+        LogSuccessfulTrades(poke, tradePartner.NID, tradePartner.OT);
 
         await ResetToLinkPlay(token).ConfigureAwait(false);
         return PokeTradeResult.Success;
@@ -713,15 +719,19 @@ public class PokeTradeBotLZA(PokeTradeHub<PA9> Hub, PokeBotState Config) : PokeR
         {
             // Data is loaded here, so we can read TID and OT from here.
             var tid = chunk.AsSpan(0x44, 4).ToArray();
+            var gender = chunk[0x48];
+            var language = chunk[0x49];
             var name = chunk.AsSpan(0x4C, TradePartnerLZA.MaxByteLengthStringObject).ToArray();
-            return new TradePartnerLZA(nid, tid, name);
+            return new TradePartnerLZA(nid, tid, name, gender, language);
         }
         // Data is not loaded at the expected place, so we have to read TID and OT from the fallback location.
         {
             chunk = await SwitchConnection.ReadBytesAbsoluteAsync(TradePartnerTIDOffset + FallBackTradePartnerDataShift, 34, token).ConfigureAwait(false);
             var tid = chunk.AsSpan(0, 4).ToArray();
+            var gender = chunk[4];
+            var language = chunk[5];
             var name = chunk.AsSpan(0x8, TradePartnerLZA.MaxByteLengthStringObject).ToArray();
-            return new TradePartnerLZA(nid, tid, name);
+            return new TradePartnerLZA(nid, tid, name, gender, language);
         }
     }
 
