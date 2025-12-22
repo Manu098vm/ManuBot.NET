@@ -56,6 +56,12 @@ public class TradeEmbedBuilder<T>(T PKM, PokeTradeHub<T> Hub, QueueUser trader) 
                          $"**Nature:** {Strings.Nature}{Environment.NewLine}" +
                          $"**Scale:** {Strings.Scale}";
 
+        if (PKM is PA9 pa9)
+        {
+            string IsAlpha = pa9.IsAlpha ? "Yes" : "No";
+            fieldValue += $"{Environment.NewLine}**Alpha:** {IsAlpha}";
+        }
+
         if (Strings.HasTeraType)
             fieldValue += $"{Environment.NewLine}**Tera Type:** {Strings.TeraType}";
 
