@@ -141,5 +141,5 @@ public class RemoteControlModule<T> : ModuleBase<SocketCommandContext> where T :
     }
 
     private static bool IsRemoteControlBot(RoutineExecutor<PokeBotState> botstate)
-        => botstate is RemoteControlBotLGPE or RemoteControlBotSWSH or RemoteControlBotBS or RemoteControlBotLA or RemoteControlBotSV;
+        => botstate is RemoteControlBotLGPE or RemoteControlBotSWSH or RemoteControlBotBS or RemoteControlBotLA or RemoteControlBotSV or RemoteControlBotLZA;
 }
