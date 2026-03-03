@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using static PKHeX.Core.EntityContextExtensions;
 
 namespace SysBot.Pokemon;
 
@@ -82,11 +83,11 @@ public static class AutoLegalityWrapper
 
         // Seed the Trainer Database with enough fake save files so that we return a generation sensitive format when needed.
         var fallback = GetDefaultTrainer(cfg);
-        for (byte generation = 1; generation <= Latest.Generation; generation++)
+        for (var context = (EntityContext)1; context <= Latest.Context; context++)
         {
-            var versions = GameUtil.GetVersionsInGeneration(generation, Latest.Version);
+            var versions = GameUtil.GetVersionsInGeneration(context, Latest.Version);
             foreach (var version in versions)
-                RegisterIfNoneExist(fallback, generation, version);
+                RegisterIfNoneExist(fallback, context, version);
         }
     }
 
@@ -106,7 +107,7 @@ public static class AutoLegalityWrapper
         return fallback;
     }
 
-    private static void RegisterIfNoneExist(SimpleTrainerInfo fallback, byte generation, GameVersion version)
+    private static void RegisterIfNoneExist(SimpleTrainerInfo fallback, EntityContext context, GameVersion version)
     {
         fallback = new SimpleTrainerInfo(version)
         {
@@ -114,9 +115,10 @@ public static class AutoLegalityWrapper
             TID16 = fallback.TID16,
             SID16 = fallback.SID16,
             OT = fallback.OT,
-            Generation = generation,
+            Context = context,
+            Generation = context.Generation,
         };
-        var exist = TrainerSettings.GetSavedTrainerData(generation, version, fallback);
+        var exist = TrainerSettings.GetSavedTrainerData(context, version, fallback);
         if (exist is SimpleTrainerInfo) // not anything from files; this assumes ALM returns SimpleTrainerInfo for non-user-provided fake templates.
             TrainerSettings.Register(fallback);
     }
@@ -178,7 +180,8 @@ public static class AutoLegalityWrapper
         throw new ArgumentException("Type does not have a recognized trainer fetch.", typeof(T).Name);
     }
 
-    public static ITrainerInfo GetTrainerInfo(byte gen) => TrainerSettings.GetSavedTrainerData(gen);
+    public static ITrainerInfo GetTrainerInfo(byte gen) =>
+        TrainerSettings.GetSavedTrainerData(EntityContextExtensions.GetSingleGameVersion((EntityContext)gen));
 
     public static PKM GetLegal(this ITrainerInfo sav, IBattleTemplate set, out string res)
     {
