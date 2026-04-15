@@ -21,16 +21,24 @@ public abstract class PokeRoutineExecutor7LGPE(PokeBotState cfg) : PokeRoutineEx
     public override async Task<PB7> ReadPokemon(ulong offset, int size, CancellationToken token) =>
         new PB7(await Connection.ReadBytesAsync((uint)offset, size, token).ConfigureAwait(false));
 
-    public async Task SetBoxPokemon(PB7 pk,int box, int slot, CancellationToken token)
+    public async Task SetBoxPokemon(PB7 pk, int box, int slot, CancellationToken token)
     {
         var offset = GetSlotOffset(box, slot);
+
+        Span<byte> data = stackalloc byte[pk.SIZE_PARTY];
+        pk.WriteDecryptedDataParty(data);
+
+        var full = data.ToArray();
+
         var chunkLength = BoxFormatSlotSize - 0x1C;
-        var chunk1 = pk.EncryptedPartyData.AsSpan(0, chunkLength).ToArray();
+
+        var chunk1 = full.AsSpan(0, chunkLength).ToArray();
         await Connection.WriteBytesAsync(chunk1, offset, token).ConfigureAwait(false);
-        var chunk2 = pk.EncryptedPartyData.AsSpan(chunkLength).ToArray();
-        await Connection.WriteBytesAsync(chunk2, (offset + (uint)chunkLength + 0x70), token).ConfigureAwait(false);
+
+        var chunk2 = full.AsSpan(chunkLength, 0x1C).ToArray();
+        await Connection.WriteBytesAsync(chunk2, offset + (uint)chunkLength + 0x70, token).ConfigureAwait(false);
     }
-   
+
     public override async Task<PB7> ReadBoxPokemon(int box, int slot, CancellationToken token)
     {
         var offset = GetSlotOffset(box, slot);
