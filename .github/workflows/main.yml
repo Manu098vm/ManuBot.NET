@@ -1,5 +1,8 @@
 name: Windows
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [ "main" ]
@@ -21,17 +24,17 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: Install .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
 
     - name: Setup MSBuild.exe
-      uses: microsoft/setup-msbuild@v2
+      uses: microsoft/setup-msbuild@v3
 
     - name: Restore NuGet packages
       run: dotnet restore
@@ -50,7 +53,7 @@ jobs:
         Configuration: ${{ matrix.configuration }}
 
     - name: Upload WinForm EXE
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: SysBot.Pokemon.WinForms-win-x64
         path: SysBot.Pokemon.WinForms\bin\${{ matrix.configuration }}\net10.0-windows\publish\win-x64\*.exe
