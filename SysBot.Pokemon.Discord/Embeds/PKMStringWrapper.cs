@@ -16,7 +16,7 @@ internal class PKMStringWrapper<T>(T PKM, TradeEmbedSettings Config) where T : P
     internal string TeraType => GetTeraTypeString();
 
     internal string Ability => GameStrings.Ability[PKM.Ability];
-    internal string Nature => GameStrings.Natures[(byte)PKM.StatNature];
+    internal string Nature => GameStrings.Natures[(byte)PKM.StatAlignment];
     internal string HeldItem => GameStrings.Item[PKM.HeldItem];
 
     internal bool HasTeraType => PKM is ITeraType { TeraType: > MoveType.Any };
